@@ -1,5 +1,7 @@
 # Rails Html Sanitizers for JRuby
 
+[![Build Status](https://travis-ci.org/jkraemer/rails-html-sanitizer-jruby.svg)](https://travis-ci.org/jkraemer/rails-html-sanitizer-jruby)
+
 ## Motivation
 
 In Rails 4.2 and above the
