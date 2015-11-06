@@ -13,12 +13,26 @@ module Rails
 
       class Sanitizer
 
+        def initialize
+          @last_policy_options = nil
+        end
+
         def sanitize(html, options = {})
           return html if html.nil? || html.empty?
-          policy(options).to_factory.sanitize html
+          policy_factory(options).sanitize html
         end
 
         private
+
+        # Use an already-built factory if the options haven't changed
+        # to greatly improve performance
+        def policy_factory(options = {})
+          if @last_policy_options != options.hash
+            @last_policy_options = options.hash
+            @factory = policy(options).to_factory
+          end
+          @factory
+        end
 
         # returns a filtering policy that strips out all tags and encodes any
         # entities.
