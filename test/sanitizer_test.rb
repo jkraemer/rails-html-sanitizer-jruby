@@ -1,5 +1,6 @@
 require "minitest/autorun"
 require "rails-html-sanitizer-jruby"
+require 'benchmark'
 
 class SanitizersTest < Minitest::Test
 
@@ -458,6 +459,16 @@ class SanitizersTest < Minitest::Test
       assert_equal '<a>hello</a>', sanitized
       assert_equal Encoding::UTF_8, sanitized.encoding
     end
+  end
+
+  def test_performance_reusing_sanitizer
+    sanitizer = Rails::Html::Owasp::WhiteListSanitizer.new
+    measurement = Benchmark.measure do
+      10_000.times do
+        sanitizer.sanitize('<a href="http://www.domain.com?var1=1&amp;var2=2">my link</a>')
+      end
+    end
+    assert measurement.total < 2, "performance was too slow, took #{measurement.total} seconds"
   end
 
 protected
