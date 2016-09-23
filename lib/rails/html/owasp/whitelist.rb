@@ -46,7 +46,7 @@ module Rails
       #
       # </html5_license>
       #
-      # Except ALLOWED_ELEMENTS and ALLOWED_ATTRIBUTES (which are used as
+      # Except ALLOWED_ELEMENTS, ALLOWED_CSS_PROPERTIES, and ALLOWED_ATTRIBUTES (which are used as
       # defaults for the WhiteListSanitizer) all constants here are left in
       # here for informational purposes / creating your own custom sanitizers
       # only.
