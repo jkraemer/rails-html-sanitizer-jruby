@@ -17,8 +17,8 @@ Gem::Specification.new do |spec|
   spec.test_files    = Dir["test/**/*"]
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "rails-html-sanitizer", "~> 1.0"
-  spec.add_dependency "htmlentities", "~> 4.3"
+  spec.add_dependency "rails-html-sanitizer", "~> 1.3.0"
+  spec.add_dependency "htmlentities", "~> 4.3.4"
 
   spec.add_development_dependency "bundler", "~> 1.3"
   spec.add_development_dependency "rake"
