@@ -1,5 +1,6 @@
 require "minitest/autorun"
 require "rails-html-sanitizer-jruby"
+require 'benchmark'
 
 class SanitizersTest < Minitest::Test
 
@@ -361,7 +362,7 @@ class SanitizersTest < Minitest::Test
 
   def test_should_sanitize_illegal_style_properties
     raw      = %(display:block; position:absolute; left:0; top:0; width:100%; height:100%; z-index:1; background-color:black; background-image:url(http://www.ragingplatypus.com/i/cam-full.jpg); background-x:center; background-y:center; background-repeat:repeat;)
-    expected = %(width:100%;height:100%;background-color:black;background-repeat:repeat)
+    expected = "display:block;width:100%;height:100%;background-color:black"
     assert_equal expected, sanitize_css(raw)
   end
 
@@ -458,6 +459,16 @@ class SanitizersTest < Minitest::Test
       assert_equal '<a>hello</a>', sanitized
       assert_equal Encoding::UTF_8, sanitized.encoding
     end
+  end
+
+  def test_performance_reusing_sanitizer
+    sanitizer = Rails::Html::Owasp::WhiteListSanitizer.new
+    measurement = Benchmark.measure do
+      10_000.times do
+        sanitizer.sanitize('<a href="http://www.domain.com?var1=1&amp;var2=2">my link</a>')
+      end
+    end
+    assert measurement.total < 2, "performance was too slow, took #{measurement.total} seconds"
   end
 
 protected

@@ -13,12 +13,26 @@ module Rails
 
       class Sanitizer
 
+        def initialize
+          @last_policy_options = nil
+        end
+
         def sanitize(html, options = {})
           return html if html.nil? || html.empty?
-          policy(options).to_factory.sanitize html
+          policy_factory(options).sanitize html
         end
 
         private
+
+        # Use an already-built factory if the options haven't changed
+        # to greatly improve performance
+        def policy_factory(options = {})
+          if @last_policy_options != options.hash
+            @last_policy_options = options.hash
+            @factory = policy(options).to_factory
+          end
+          @factory
+        end
 
         # returns a filtering policy that strips out all tags and encodes any
         # entities.
@@ -75,22 +89,29 @@ module Rails
         class << self
           attr_accessor :allowed_tags
           attr_accessor :allowed_attributes
+          attr_accessor :allowed_css_properties
         end
 
-        def sanitize_css(style_string)
-          styling_policy.sanitize_css_properties(style_string).to_s
+        def sanitize_css(style_string, options = {})
+          options = options_with_defaults(options)
+          styling_policy(options).sanitize_css_properties(style_string).to_s
         end
 
         private
 
-        def policy(options = {})
-          options = {
+        def options_with_defaults(options)
+          {
             tags: (self.class.allowed_tags || Whitelist::ALLOWED_ELEMENTS),
             attributes: (self.class.allowed_attributes || Whitelist::ALLOWED_ATTRIBUTES),
+            css_properties: (self.class.allowed_css_properties || Whitelist::ALLOWED_CSS_PROPERTIES),
             add_rel_nofollow: false,
             skip_empty_tags_if_useless: false,
             allow_styling: true
           }.merge options
+        end
+
+        def policy(options = {})
+          options = options_with_defaults(options)
 
           raise ArgumentError, 'tags must be enumerable' unless Enumerable === options[:tags]
           raise ArgumentError, 'attributes must be enumerable' unless Enumerable === options[:attributes]
@@ -100,19 +121,26 @@ module Rails
             allow_attributes( *options[:attributes] ).globally.
             allow_standard_url_protocols.
             tap do |policy|
-              policy.allow_styling if options[:allow_styling]
+              if options[:allow_styling]
+                policy.allow_styling(css_schema(options[:css_properties]))
+              end
               policy.allow_without_attributes( *HtmlPolicyBuilder::DEFAULT_SKIP_IF_EMPTY ) unless options[:skip_empty_tags_if_useless]
               policy.require_rel_nofollow if options[:add_rel_nofollow]
             end
         end
 
-        def styling_policy
+        def css_schema(whitelist)
+          Java::OrgOwaspHtml::CssSchema.with_properties(whitelist.to_a)
+        end
+
+        def styling_policy(options)
           # break some privacy to get hold of a StylingPolicy instance
           constructor = Java::OrgOwaspHtml::StylingPolicy.
             java_class.declared_constructors.first
           constructor.accessible = true
-          constructor.new_instance(Java::OrgOwaspHtml::CssSchema::DEFAULT).to_java
+          constructor.new_instance(css_schema(options[:css_properties])).to_java
         end
+
       end
 
       # a WhiteListSanitizer, but without allowing links
